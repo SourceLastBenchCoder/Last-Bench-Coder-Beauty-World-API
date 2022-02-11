@@ -1,36 +1,22 @@
 # Last Bench Coder Beauty World
 
-## Install Visual Studio Code 
+Markup : * Install Visual Studio Code
 
 [Download Visual Studio Code - Mac, Linux, Windows](https://code.visualstudio.com/Download "Download Visual Studio Code - Mac, Linux, Windows")  
 
- 
-
- 
-
-For .NET Core Development, Install Below Items 
-
- 
+Markup : * For .NET Core Development, Install Below Items  
 
 .NET Core SDK. The SDK also includes the Runtime. 
 
 The C# extension from the VS Code Marketplace. 
 
-The F# extension (Ionide) from the VS Code Marketplace 
+The F# extension (Ionide) from the VS Code Marketplace  
 
- 
+Markup : * Go to Any Drive  
 
-Go to Any Drive 
+Markup : * Create Folder My Core Projects 
 
- 
-
-Create Folder My Core Projects 
-
- 
-
-Open command prompt, run below query 
-
- 
+Markup : * Open command prompt, run below query  
 
 dotnet new webapi -o Last.Bench.Coder.Beauty.World 
 

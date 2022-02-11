@@ -1,4 +1,4 @@
-# Last Bench Coder
+# Last Bench Coder Beauty World
 
 Install Visual Studio Code 
 

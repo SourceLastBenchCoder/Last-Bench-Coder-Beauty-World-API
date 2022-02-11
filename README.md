@@ -1,10 +1,10 @@
 # Last Bench Coder Beauty World
 
-Install Visual Studio Code 
+## Install Visual Studio Code 
+
+[Download Visual Studio Code - Mac, Linux, Windows](https://code.visualstudio.com/Download "Download Visual Studio Code - Mac, Linux, Windows")  
 
  
-
-Download Visual Studio Code - Mac, Linux, Windows 
 
  
 

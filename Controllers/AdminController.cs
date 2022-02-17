@@ -40,6 +40,7 @@ namespace Last.Bench.Coder.Beauty.World.Controllers
             var token = _jwtAuth.Authentication(model.UserId);
 
             AuthenticateResponse response = new AuthenticateResponse();
+            response.UserUniqueId=admin.AdminId;
             response.UserId = admin.FullName;
             response.EmailId = admin.EmailId;
             response.Role = admin.Role;
@@ -123,8 +124,11 @@ namespace Last.Bench.Coder.Beauty.World.Controllers
             bool result = false;
             result = EnumData.TryParseEnum<eStatus>(Admin.Status);
 
-            if (_unitOfWork.Admin.GetAll().Where(n => n.EmailId == Admin.EmailId && n.PhoneNo == Admin.PhoneNo).FirstOrDefault() != null)
-                return ValidationProblem("Admin EmailId or PhoneNo Already Exists, Please Enter Different Admin FullName or PhoneNo");
+            if (_unitOfWork.Admin.GetAll().Where(n => n.EmailId == Admin.EmailId).FirstOrDefault() != null)
+                return ValidationProblem("Admin EmailId Already Exists, Please Enter different Email Id");
+
+            if (_unitOfWork.Admin.GetAll().Where(n => n.PhoneNo == Admin.PhoneNo).FirstOrDefault() != null)
+                return ValidationProblem("Admin Phone Number Already Exists, Please Enter different Phone Number");
 
             if (!resultStatus)
                 return ValidationProblem("Please Specify Valid Status, Given Status for the Admin is In-Valid");

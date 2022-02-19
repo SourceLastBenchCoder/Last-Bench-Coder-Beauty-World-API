@@ -20,9 +20,11 @@ namespace Last.Bench.Coder.Beauty.World.Controllers
     public class StoreController : ControllerBase
     {
         private readonly IUnitOfWork _unitOfWork;
-        public StoreController(IUnitOfWork unitOfWork)
+        private readonly IWebHostEnvironment _hostEnvironment;
+        public StoreController(IUnitOfWork unitOfWork, IWebHostEnvironment hostEnvironment)
         {
             _unitOfWork = unitOfWork;
+            _hostEnvironment = hostEnvironment;
         }
 
         [HttpGet]
@@ -71,52 +73,91 @@ namespace Last.Bench.Coder.Beauty.World.Controllers
 
         [HttpPost]
         [Route("create")]
-        public IActionResult InsertStore(Store Store)
+        public IActionResult InsertStore([FromForm] Store StoreModel)
         {
             bool result = false;
-            result = EnumData.TryParseEnum<eStatus>(Store.Status);
+            result = EnumData.TryParseEnum<eStatus>(StoreModel.Status);
 
-            if (_unitOfWork.Store.GetAll().Where(n => n.StoreName == Store.StoreName).FirstOrDefault() != null)
+            if (_unitOfWork.Store.GetAll().Where(n => n.StoreName == StoreModel.StoreName).FirstOrDefault() != null)
                 return ValidationProblem("Store Name Already Exists, Please Enter Different Store Name");
 
             if (!result)
                 return ValidationProblem("Please Specify Valid Status, Given Status for the Store is In-Valid");
 
-            Store.DateCreated = DateTime.Now;
-            Store.DateUpdated = DateTime.Now;
-            _unitOfWork.Store.Add(Store);
+            if (StoreModel.ImageFile != null)
+            {
+                DeleteImage(StoreModel.Banner);
+                StoreModel.Banner = SaveImage(StoreModel.ImageFile);
+            }
+
+            StoreModel.DateCreated = DateTime.Now;
+            StoreModel.DateUpdated = DateTime.Now;
+            _unitOfWork.Store.Add(StoreModel);
             _unitOfWork.Complete();
-            return Ok(Store);
+            return Ok(StoreModel);
         }
 
         [HttpPost]
         [Route("update")]
-        public IActionResult UpdateStore([FromBody] Store Store)
+        public IActionResult UpdateStore([FromForm] Store StoreModel)
         {
-            Store storeToUpdate = _unitOfWork.Store.GetById(Store.StoreId);
+            Store storeToUpdate = _unitOfWork.Store.GetById(StoreModel.StoreId);
 
             if (storeToUpdate == null)
                 return NotFound();
 
             bool result = false;
-            result = EnumData.TryParseEnum<eStatus>(Store.Status);
+            result = EnumData.TryParseEnum<eStatus>(StoreModel.Status);
 
-            if (_unitOfWork.Store.GetAll().Where(n => n.StoreId != Store.StoreId && n.StoreName == Store.StoreName).FirstOrDefault() != null)
+            if (_unitOfWork.Store.GetAll().Where(n => n.StoreId != StoreModel.StoreId && n.StoreName == StoreModel.StoreName).FirstOrDefault() != null)
                 return ValidationProblem("Store Name Already Exists, Please Enter Different Store Name");
 
             if (!result)
                 return ValidationProblem("Please Specify Valid Status, Given Status for the Store is In-Valid");
 
-            storeToUpdate.StoreName = Store.StoreName;
-            storeToUpdate.Description = Store.Description;
-            storeToUpdate.Address = Store.Address;
+            if (StoreModel.ImageFile != null)
+            {
+                DeleteImage(StoreModel.Banner);
+                StoreModel.Banner = SaveImage(StoreModel.ImageFile);
+            }
+
+            if (storeToUpdate.Banner != "nobanner.png" && StoreModel.Banner == "nobanner.png")
+                StoreModel.Banner = storeToUpdate.Banner;
+
+
+            storeToUpdate.StoreName = StoreModel.StoreName;
+            storeToUpdate.Description = StoreModel.Description;
+            storeToUpdate.Address = StoreModel.Address;
             storeToUpdate.ContactDetail = storeToUpdate.ContactDetail;
-            storeToUpdate.Status = Store.Status;
+            storeToUpdate.Status = StoreModel.Status;
+            storeToUpdate.Banner = StoreModel.Banner;
             storeToUpdate.DateUpdated = DateTime.Now;
+            storeToUpdate.CreatedBy = StoreModel.CreatedBy;
 
             _unitOfWork.Store.Update(storeToUpdate);
             int i = _unitOfWork.Complete();
-            return Ok(Store);
+            return Ok(StoreModel);
+        }
+
+        [NonAction]
+        public string SaveImage(IFormFile imageFile)
+        {
+            string imageName = new String(Path.GetFileNameWithoutExtension(imageFile.FileName).Take(10).ToArray()).Replace(' ', '-');
+            imageName = imageName + DateTime.Now.ToString("yymmssfff") + Path.GetExtension(imageFile.FileName);
+            var imagePath = Path.Combine(_hostEnvironment.ContentRootPath, "Images", imageName);
+            using (var fileStream = new FileStream(imagePath, FileMode.Create))
+            {
+                imageFile.CopyToAsync(fileStream);
+            }
+            return imageName;
+        }
+
+        [NonAction]
+        public void DeleteImage(string imageName)
+        {
+            var imagePath = Path.Combine(_hostEnvironment.ContentRootPath, "Images", imageName);
+            if (System.IO.File.Exists(imagePath))
+                System.IO.File.Delete(imagePath);
         }
     }
 }

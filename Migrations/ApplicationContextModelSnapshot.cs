@@ -207,6 +207,9 @@ namespace Last.Bench.Coder.Beauty.World.Migrations
                     b.Property<string>("Address")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("Banner")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("ContactDetail")
                         .HasColumnType("nvarchar(max)");
 

@@ -18,10 +18,12 @@ namespace Last.Bench.Coder.Beauty.World.Controllers
     {
         private readonly IUnitOfWork _unitOfWork;
         private readonly IJwtAuth _jwtAuth;
-        public AdminController(IUnitOfWork unitOfWork, IJwtAuth jwtAuth)
+        private readonly IWebHostEnvironment _hostEnvironment;
+        public AdminController(IUnitOfWork unitOfWork, IJwtAuth jwtAuth, IWebHostEnvironment hostEnvironment)
         {
             _unitOfWork = unitOfWork;
             _jwtAuth = jwtAuth;
+            this._hostEnvironment = hostEnvironment;
         }
 
         [HttpPost]
@@ -40,10 +42,11 @@ namespace Last.Bench.Coder.Beauty.World.Controllers
             var token = _jwtAuth.Authentication(model.UserId);
 
             AuthenticateResponse response = new AuthenticateResponse();
-            response.UserUniqueId=admin.AdminId;
+            response.UserUniqueId = admin.AdminId;
             response.UserId = admin.FullName;
             response.EmailId = admin.EmailId;
             response.Role = admin.Role;
+            response.Banner = admin.Banner;
             response.Token = token;
 
             return Ok(response);
@@ -113,21 +116,21 @@ namespace Last.Bench.Coder.Beauty.World.Controllers
 
         [HttpPost]
         [Route("create")]
-        public IActionResult InsertAdmin(Admin Admin)
+        public IActionResult InsertAdmin([FromForm] Admin AdminModel)
         {
             bool resultStatus = false;
-            resultStatus = EnumData.TryParseEnum<eStatus>(Admin.Status);
+            resultStatus = EnumData.TryParseEnum<eStatus>(AdminModel.Status);
 
             bool resultRole = false;
-            resultRole = EnumData.TryParseEnum<eRole>(Admin.Role);
+            resultRole = EnumData.TryParseEnum<eRole>(AdminModel.Role);
 
             bool result = false;
-            result = EnumData.TryParseEnum<eStatus>(Admin.Status);
+            result = EnumData.TryParseEnum<eStatus>(AdminModel.Status);
 
-            if (_unitOfWork.Admin.GetAll().Where(n => n.EmailId == Admin.EmailId).FirstOrDefault() != null)
+            if (_unitOfWork.Admin.GetAll().Where(n => n.EmailId == AdminModel.EmailId).FirstOrDefault() != null)
                 return ValidationProblem("Admin EmailId Already Exists, Please Enter different Email Id");
 
-            if (_unitOfWork.Admin.GetAll().Where(n => n.PhoneNo == Admin.PhoneNo).FirstOrDefault() != null)
+            if (_unitOfWork.Admin.GetAll().Where(n => n.PhoneNo == AdminModel.PhoneNo).FirstOrDefault() != null)
                 return ValidationProblem("Admin Phone Number Already Exists, Please Enter different Phone Number");
 
             if (!resultStatus)
@@ -136,35 +139,47 @@ namespace Last.Bench.Coder.Beauty.World.Controllers
             if (!resultRole)
                 return ValidationProblem("Please Specify Valid Role, Given Role for the Admin is In-Valid");
 
-            MailAddress address = new MailAddress(Admin.EmailId);
+            if (AdminModel.ImageFile != null)
+            {
+                DeleteImage(AdminModel.Banner);
+                AdminModel.Banner = SaveImage(AdminModel.ImageFile);
+            }
 
-            Admin.LoginId = address.User;
-            Admin.DateCreated = DateTime.Now;
-            Admin.DateUpdated = DateTime.Now;
-            _unitOfWork.Admin.Add(Admin);
+            MailAddress address = new MailAddress(AdminModel.EmailId);
+
+            AdminModel.LoginId = address.User;
+            AdminModel.DateCreated = DateTime.Now;
+            AdminModel.DateUpdated = DateTime.Now;
+            _unitOfWork.Admin.Add(AdminModel);
             _unitOfWork.Complete();
-            return Ok(Admin);
+            return Ok(AdminModel);
         }
 
         [HttpPost]
         [Route("update")]
-        public IActionResult UpdateAdmin([FromBody] Admin Admin)
+        public IActionResult UpdateAdmin([FromForm] Admin AdminModel)
         {
-            Admin AdminToUpdate = _unitOfWork.Admin.GetById(Admin.AdminId);
+            Admin AdminToUpdate = _unitOfWork.Admin.GetById(AdminModel.AdminId);
 
             if (AdminToUpdate == null)
                 return NotFound();
 
             bool resultStatus = false;
-            resultStatus = EnumData.TryParseEnum<eStatus>(Admin.Status);
+            if (AdminModel.Status != null)
+                resultStatus = EnumData.TryParseEnum<eStatus>(AdminModel.Status);
+            else
+                resultStatus = true;
 
             bool resultRole = false;
-            resultRole = EnumData.TryParseEnum<eRole>(Admin.Role);
+            if (AdminModel.Role != null)
+                resultRole = EnumData.TryParseEnum<eRole>(AdminModel.Role);
+            else
+                resultRole = true;
 
-            if (_unitOfWork.Admin.GetAll().Where(n => n.AdminId != Admin.AdminId && n.EmailId == Admin.EmailId).FirstOrDefault() != null)
+            if (_unitOfWork.Admin.GetAll().Where(n => n.AdminId != AdminModel.AdminId && n.EmailId == AdminModel.EmailId).FirstOrDefault() != null)
                 return ValidationProblem("Admin EmailId Already Exists, Please Enter Different Admin EmailId");
 
-            if (_unitOfWork.Admin.GetAll().Where(n => n.AdminId != Admin.AdminId && n.PhoneNo == Admin.PhoneNo).FirstOrDefault() != null)
+            if (_unitOfWork.Admin.GetAll().Where(n => n.AdminId != AdminModel.AdminId && n.PhoneNo == AdminModel.PhoneNo).FirstOrDefault() != null)
                 return ValidationProblem("Admin Phone No Already Exists, Please Enter Different Admin Phone No");
 
             if (!resultStatus)
@@ -174,15 +189,46 @@ namespace Last.Bench.Coder.Beauty.World.Controllers
             if (!resultRole)
                 return ValidationProblem("Please Specify Valid Role, Given Role for the Admin is In-Valid");
 
-            AdminToUpdate.FullName = Admin.FullName;
-            AdminToUpdate.Password = Admin.Password;
-            AdminToUpdate.Status = AdminToUpdate.Status;
-            AdminToUpdate.Role = Admin.Role;
+            if ((AdminToUpdate.Banner != "nobanner.png" && AdminModel.Banner == "nobanner.png") || AdminModel.Banner == null)
+                AdminModel.Banner = AdminToUpdate.Banner;
+
+            if (AdminModel.ImageFile != null)
+            {
+                DeleteImage(AdminModel.Banner);
+                AdminModel.Banner = SaveImage(AdminModel.ImageFile);
+            }
+
+            AdminToUpdate.FullName = AdminModel.FullName != null ? AdminModel.FullName : AdminToUpdate.FullName;
+            AdminToUpdate.Password = AdminModel.Password != null ? AdminModel.Password : AdminToUpdate.Password;
+            AdminToUpdate.Status = AdminModel.Status != null ? AdminModel.Status : AdminToUpdate.Status;
+            AdminToUpdate.Role = AdminModel.Role != null ? AdminModel.Role : AdminToUpdate.Role;
+            AdminToUpdate.Banner = AdminModel.Banner;
             AdminToUpdate.DateUpdated = DateTime.Now;
 
             _unitOfWork.Admin.Update(AdminToUpdate);
             int i = _unitOfWork.Complete();
-            return Ok(Admin);
+            return Ok(AdminModel);
+        }
+
+        [NonAction]
+        public string SaveImage(IFormFile imageFile)
+        {
+            string imageName = new String(Path.GetFileNameWithoutExtension(imageFile.FileName).Take(10).ToArray()).Replace(' ', '-');
+            imageName = imageName + DateTime.Now.ToString("yymmssfff") + Path.GetExtension(imageFile.FileName);
+            var imagePath = Path.Combine(_hostEnvironment.ContentRootPath, "Images", imageName);
+            using (var fileStream = new FileStream(imagePath, FileMode.Create))
+            {
+                imageFile.CopyToAsync(fileStream);
+            }
+            return imageName;
+        }
+
+        [NonAction]
+        public void DeleteImage(string imageName)
+        {
+            var imagePath = Path.Combine(_hostEnvironment.ContentRootPath, "Images", imageName);
+            if (System.IO.File.Exists(imagePath))
+                System.IO.File.Delete(imagePath);
         }
     }
 }

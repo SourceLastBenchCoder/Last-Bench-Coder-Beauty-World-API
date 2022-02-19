@@ -11,6 +11,7 @@ namespace Last.Bench.Coder.Beauty.World.Entity
         public string UserId { get; set; }
         public string EmailId { get; set; }
         public string Role { get; set; }
+        public string Banner { get; set; }
         public string Token { get; set; }
     }
 }

@@ -13,9 +13,16 @@ namespace Last.Bench.Coder.Beauty.World.Entity
         public string Address { get; set; }
         public string ZipCode { get; set; }
         public string ContactDetail { get; set; }
+        public string Banner { get; set; }
         public string Status { get; set; }
         public string CreatedBy { get; set; }
         public DateTime DateCreated { get; set; }
         public DateTime DateUpdated { get; set; }
+        
+        [NotMapped]
+        public IFormFile ImageFile { get; set; }
+
+        [NotMapped]
+        public string ImageSrc { get; set; }
     }
 }

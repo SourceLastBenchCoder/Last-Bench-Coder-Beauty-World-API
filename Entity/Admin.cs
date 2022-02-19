@@ -25,6 +25,11 @@ namespace Last.Bench.Coder.Beauty.World.Entity
         public string CreatedBy { get; set; }
         public DateTime DateCreated { get; set; }
         public DateTime DateUpdated { get; set; }
+        [NotMapped]
+        public IFormFile ImageFile { get; set; }
+
+        [NotMapped]
+        public string ImageSrc { get; set; }
 
         public Store Store { get; set; }
     }
